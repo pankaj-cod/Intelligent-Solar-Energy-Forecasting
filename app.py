@@ -3,13 +3,13 @@ import pandas as pd
 import joblib
 import numpy as np
 import os
-from dotenv import load_dotenv
 
 from analysis import summarize_forecast, analyze_risk
 from pipeline import run_ai_optimization
 
 # Load environment variables from .env
-load_dotenv()
+
+groq_key = os.getenv("GROQ_API_KEY")
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Solar Energy Forecasting · AI Grid Optimization",
