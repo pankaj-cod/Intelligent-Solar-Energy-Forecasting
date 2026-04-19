@@ -13,7 +13,7 @@ groq_key = os.getenv("GROQ_API_KEY")
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Solar Energy Forecasting · AI Grid Optimization",
-    page_icon="☀️",
+    page_icon=":material/wb_sunny:",
     layout="centered",
 )
 
@@ -22,6 +22,8 @@ st.markdown("""
 <style>
 /* ---------- global ---------- */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&display=swap');
+@import url("https://unpkg.com/@phosphor-icons/web@2.1.1/src/duotone/style.css");
+@import url("https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css");
 
 html, body, [class*="css"] {
     font-family: 'Inter', sans-serif;
@@ -394,7 +396,7 @@ div[data-testid="stTabs"] button[data-baseweb="tab"] {
 groq_key = os.getenv("GROQ_API_KEY")
 
 # ── Plant selection (shared) ──────────────────────────────────────────────────
-st.markdown('<div class="card"><div class="card-title">⚡ Plant Selection</div>', unsafe_allow_html=True)
+st.markdown('<div class="card"><div class="card-title"><i class="ph-duotone ph-lightning"></i> Plant Selection</div>', unsafe_allow_html=True)
 plant_choice = st.selectbox("Select Plant", ["Plant 1", "Plant 2"], label_visibility="collapsed")
 st.markdown("</div>", unsafe_allow_html=True)
 
@@ -407,7 +409,7 @@ else:
 # ══════════════════════════════════════════════════════════════════════════════
 #  TABBED LAYOUT
 # ══════════════════════════════════════════════════════════════════════════════
-tab1, tab2 = st.tabs(["☀️  Milestone 1 — Forecast", "🔋 Milestone 2 — AI Grid Optimization"])
+tab1, tab2 = st.tabs([":material/sunny: Milestone 1 — Forecast", ":material/battery_charging_full: Milestone 2 — AI Grid Optimization"])
 
 # ══════════════════════════════════════════════════════════════════════════════
 #  TAB 1 — PHASE 1: SOLAR FORECAST
@@ -416,7 +418,7 @@ with tab1:
     st.markdown("""
     <div class="hero">
         <span class="phase-badge p1">Milestone 1</span>
-        <h1>☀️ Solar Energy Forecasting</h1>
+        <h1><i class="ph-duotone ph-sun"></i> Solar Energy Forecasting</h1>
         <p>ML-powered AC power prediction for solar plants</p>
     </div>
     """, unsafe_allow_html=True)
@@ -425,21 +427,21 @@ with tab1:
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown('<div class="card"><div class="card-title">🕐 Time Features</div>', unsafe_allow_html=True)
+        st.markdown('<div class="card"><div class="card-title"><i class="ph-duotone ph-clock"></i> Time Features</div>', unsafe_allow_html=True)
         hour  = st.slider("Hour of Day",   0, 23,  12)
         day   = st.slider("Day of Month",  1, 31,  15)
         month = st.slider("Month",         1, 12,   6)
         st.markdown("</div>", unsafe_allow_html=True)
 
     with col2:
-        st.markdown('<div class="card"><div class="card-title">🌡️ Weather Conditions</div>', unsafe_allow_html=True)
+        st.markdown('<div class="card"><div class="card-title"><i class="ph-duotone ph-thermometer"></i> Weather Conditions</div>', unsafe_allow_html=True)
         irradiation  = st.number_input("Irradiation (W/m²)",        value=0.5,  format="%.3f")
         ambient_temp = st.number_input("Ambient Temperature (°C)",  value=25.0, format="%.1f")
         module_temp  = st.number_input("Module Temperature (°C)",   value=30.0, format="%.1f")
         st.markdown("</div>", unsafe_allow_html=True)
 
     # ── Historical AC power ────────────────────────────────────────────────────
-    st.markdown('<div class="card"><div class="card-title">📊 Historical AC Power (kW)</div>', unsafe_allow_html=True)
+    st.markdown('<div class="card"><div class="card-title"><i class="ph-duotone ph-chart-bar"></i> Historical AC Power (kW)</div>', unsafe_allow_html=True)
     hcol1, hcol2, hcol3 = st.columns(3)
     with hcol1:
         prev_1  = st.number_input("1 Hour Ago",   value=100.0, format="%.1f")
@@ -454,17 +456,17 @@ with tab1:
     # ── Input summary chips ────────────────────────────────────────────────────
     st.markdown(f"""
     <div class="chip-row">
-        <span class="chip">🕐 {hour:02d}:00</span>
-        <span class="chip">📅 {day:02d}/{month:02d}</span>
-        <span class="chip">☀️ Irr: {irradiation:.3f}</span>
-        <span class="chip">🌡️ Amb: {ambient_temp:.1f}°C</span>
-        <span class="chip">🔆 Mod: {module_temp:.1f}°C</span>
-        <span class="chip">📈 Roll Avg: {roll_3:.1f} kW</span>
+        <span class="chip"><i class="ph-fill ph-clock"></i> {hour:02d}:00</span>
+        <span class="chip"><i class="ph-fill ph-calendar-blank"></i> {day:02d}/{month:02d}</span>
+        <span class="chip"><i class="ph-fill ph-sun"></i> Irr: {irradiation:.3f}</span>
+        <span class="chip"><i class="ph-fill ph-thermometer"></i> Amb: {ambient_temp:.1f}°C</span>
+        <span class="chip"><i class="ph-fill ph-lightbulb"></i> Mod: {module_temp:.1f}°C</span>
+        <span class="chip"><i class="ph-fill ph-trend-up"></i> Roll Avg: {roll_3:.1f} kW</span>
     </div>
     """, unsafe_allow_html=True)
 
     # ── Predict ────────────────────────────────────────────────────────────────
-    if st.button("⚡ Predict AC Power"):
+    if st.button("Predict AC Power", icon=":material/bolt:"):
         input_dict = {
             'AMBIENT_TEMPERATURE': ambient_temp,
             'MODULE_TEMPERATURE':  module_temp,
@@ -507,7 +509,7 @@ with tab2:
     st.markdown("""
     <div class="hero-p2">
         <span class="phase-badge p2">Milestone 2</span>
-        <h1>🔋 AI Grid Optimization</h1>
+        <h1><i class="ph-duotone ph-battery-charging"></i> AI Grid Optimization</h1>
         <p>RAG-powered analysis · LLM strategy recommendations · Risk assessment</p>
     </div>
     """, unsafe_allow_html=True)
@@ -529,7 +531,7 @@ with tab2:
     if 'prediction' not in st.session_state:
         st.markdown("""
         <div class="risk-banner risk-low">
-            <div class="risk-title risk-low">☀️ Run Phase 1 First</div>
+            <div class="risk-title risk-low"><i class="ph-fill ph-warning-circle"></i> Run Phase 1 First</div>
             <div class="risk-details">Switch to the Phase 1 tab and click "⚡ Predict AC Power" before running the optimization pipeline.</div>
         </div>
         """, unsafe_allow_html=True)
@@ -540,20 +542,20 @@ with tab2:
         # Show current prediction context
         st.markdown(f"""
         <div class="card-p2">
-            <div class="card-title-p2">📍 Current Prediction Context</div>
+            <div class="card-title-p2"><i class="ph-duotone ph-target"></i> Current Prediction Context</div>
             <div style="display:flex; gap:1.5rem; flex-wrap:wrap;">
                 <div><span style="color:#94a3b8; font-size:0.78rem;">PLANT</span><br>
                      <span style="color:#e2e8f0; font-weight:700;">{plant}</span></div>
                 <div><span style="color:#94a3b8; font-size:0.78rem;">PREDICTED OUTPUT</span><br>
                      <span style="color:#38bdf8; font-weight:700;">{pred:,.2f} kW</span></div>
                 <div><span style="color:#94a3b8; font-size:0.78rem;">STATUS</span><br>
-                     <span style="color:#22c55e; font-weight:700;">✓ Ready</span></div>
+                     <span style="color:#22c55e; font-weight:700;"><i class="ph-fill ph-check-circle"></i> Ready</span></div>
             </div>
         </div>
         """, unsafe_allow_html=True)
 
         # ── Run pipeline ───────────────────────────────────────────────────────
-        if st.button("🚀 Run AI Optimization Pipeline"):
+        if st.button("Run AI Optimization Pipeline", icon=":material/rocket_launch:"):
             base = st.session_state['last_input'].copy()
             hourly_preds = []
             for h in range(24):
@@ -582,7 +584,7 @@ with tab2:
             var = s['variability']
 
             st.markdown("---")
-            st.subheader("📊 24-Hour Forecast Summary")
+            st.subheader(":material/monitoring: 24-Hour Forecast Summary")
 
             st.markdown(f"""
             <div class="metric-grid">
@@ -615,17 +617,17 @@ with tab2:
             r = st.session_state['risk_analysis']
 
             st.markdown("---")
-            st.subheader("⚠️ Risk Analysis")
+            st.subheader(":material/warning: Risk Analysis")
 
             if 'High' in r['risk_level']:
                 rcls = 'risk-high'
-                icon = '🔴'
+                icon = '<i class="ph-fill ph-x-circle"></i>'
             elif 'Low' in r['risk_level']:
                 rcls = 'risk-low'
-                icon = '🟡'
+                icon = '<i class="ph-fill ph-warning"></i>'
             else:
                 rcls = 'risk-stable'
-                icon = '🟢'
+                icon = '<i class="ph-fill ph-check-circle"></i>'
 
             st.markdown(f"""
             <div class="risk-banner {rcls}">
@@ -642,14 +644,14 @@ with tab2:
         # ══════════════════════════════════════════════════════════════════════
         if st.session_state.get('rag_guidelines') or st.session_state.get('llm_recommendation'):
             st.markdown("---")
-            st.subheader("🤖 AI-Powered Recommendations")
+            st.subheader(":material/smart_toy: AI-Powered Recommendations")
 
             # Retrieved guidelines (RAG)
             if st.session_state.get('rag_guidelines'):
                 guides = st.session_state['rag_guidelines']
                 st.markdown("""
                 <div class="card-p2">
-                    <div class="card-title-p2">📋 RAG-Retrieved Grid Actions</div>
+                    <div class="card-title-p2"><i class="ph-duotone ph-list-checks"></i> RAG-Retrieved Grid Actions</div>
                 """, unsafe_allow_html=True)
 
                 for g in guides:
@@ -668,7 +670,7 @@ with tab2:
                 rec = st.session_state['llm_recommendation']
                 st.markdown(f"""
                 <div class="rec-card">
-                    <div class="card-title-p2">💡 LLM Strategy Recommendation</div>
+                    <div class="card-title-p2"><i class="ph-duotone ph-lightbulb"></i> LLM Strategy Recommendation</div>
                     <div class="rec-section">
                         <div class="rec-label">Risk Interpretation</div>
                         <div class="rec-text">{rec['risk_interpretation']}</div>
