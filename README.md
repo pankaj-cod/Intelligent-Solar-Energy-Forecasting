@@ -1,150 +1,204 @@
-# Intelligent Solar Energy Forecasting
+# ☀️ Intelligent Solar Energy Forecasting & AI Grid Optimization
 
-A machine-learning pipeline to **forecast solar PV AC power output** using **plant generation data + weather sensor data**. The current implementation is notebook-based and trains **plant-specific** forecasting models (Plant 1 and Plant 2).
+A two-phase ML + GenAI system that **predicts solar PV power output** and **generates AI-powered grid optimization strategies** using RAG and LLM agents.
 
-## What this project does
+---
 
-This project builds a supervised regression model to predict:
+## What This Project Does
 
-- **Target:** `AC_POWER`
+### Phase 1 — Solar Forecasting (ML)
+Trains a **RandomForestRegressor** to predict **AC Power output** (kW) for two solar plants using weather sensor data, time features, and autoregressive lag features.
 
-using a combination of:
+### Phase 2 — AI Grid Optimization (GenAI)
+Takes Phase 1 predictions and runs them through a **5-step agentic pipeline**:
 
-- **Weather features** (`AMBIENT_TEMPERATURE`, `MODULE_TEMPERATURE`, `IRRADIATION`)
-- **Time features** derived from `DATE_TIME` (hour/day/month)
-- **Autoregressive features** from past `AC_POWER` values (lags + rolling mean)
+```
+24-hour predictions → Forecast Summary → Risk Analysis → RAG Retrieval → LLM Recommendation
+```
 
-The workflow is implemented in:
-- `notebooks/GenAI_Project (2).ipynb`
+The pipeline uses **FAISS + sentence-transformers** for retrieval and **Groq (Llama 3.3 70B)** for structured strategy generation.
 
-## Data used
+---
 
-The notebook uses four CSV files:
+## Architecture
 
-### Generation data
-- `Plant_1_Generation_Data.csv`
-- `Plant_2_Generation_Data.csv`
+```
+Intelligent-Solar-Energy-Forecasting/
+│
+├── app.py              ← Streamlit UI (tabbed: Phase 1 + Phase 2)
+├── analysis.py         ← summarize_forecast() + analyze_risk()
+├── rag.py              ← FAISS vector index + retrieve_guidelines()
+├── llm.py              ← Groq LLM + generate_recommendation()
+├── pipeline.py         ← run_ai_optimization() — unified agent pipeline
+│
+├── model_plant1.pkl    ← Trained RF model for Plant 1
+├── model_plant2.pkl    ← Trained RF model for Plant 2
+├── dataset/            ← Generation + weather CSVs
+├── notebooks/          ← Training notebook (GenAI_Project)
+├── requirements.txt    ← Python dependencies
+├── PHASE2_DOCUMENTATION.md  ← Detailed Phase 2 technical docs
+└── README.md           ← This file
+```
 
-Observed columns for generation (`p1_gen.info()` in the notebook):
-- `DATE_TIME` (string initially, parsed to datetime)
-- `PLANT_ID` (int)
-- `SOURCE_KEY` (string/categorical)
-- `DC_POWER` (float)
-- `AC_POWER` (float) ← **prediction target**
-- `DAILY_YIELD` (float)
-- `TOTAL_YIELD` (float)
+---
 
-### Weather sensor data
-- `Plant_1_Weather_Sensor_Data.csv`
-- `Plant_2_Weather_Sensor_Data.csv`
+## Pipeline Flow
 
-Observed columns for weather (`p1_weather.info()` in the notebook):
-- `DATE_TIME` (string initially, parsed to datetime)
-- `PLANT_ID` (int)
-- `SOURCE_KEY` (string/categorical)
-- `AMBIENT_TEMPERATURE` (float)
-- `MODULE_TEMPERATURE` (float)
-- `IRRADIATION` (float)
+### Phase 1: ML Prediction
 
-## Methodology (as implemented in the notebook)
+| Step | Detail |
+|---|---|
+| **Data** | 4 CSVs — generation + weather sensor data for Plant 1 & Plant 2 |
+| **Features** | Weather (irradiation, ambient temp, module temp), time (hour, day, month), autoregressive (lag-1, lag-2, lag-24, rolling-3 mean) |
+| **Model** | `RandomForestRegressor(n_estimators=200, max_depth=10)` |
+| **Results** | Plant 1: R² = 0.9948 · Plant 2: R² = 0.9925 |
 
-### 1) Parsing timestamps
-Both generation and weather data parse `DATE_TIME` with:
+### Phase 2: AI Optimization Pipeline
 
-- `pd.to_datetime(..., errors="coerce")`
+| Step | Function | What It Does |
+|---|---|---|
+| 1 | `summarize_forecast()` | Computes avg/max/min generation + variability (CV-based) |
+| 2 | `analyze_risk()` | Rule-based risk classification + sudden drop detection (>30%) |
+| 3 | `retrieve_guidelines()` | FAISS cosine search over 14 grid guidelines using `all-MiniLM-L6-v2` |
+| 4 | `generate_recommendation()` | Groq Llama 3.3 70B generates structured JSON strategy |
+| 5 | `run_ai_optimization()` | Chains steps 1–4 into a single callable pipeline |
 
-### 2) Merge generation + weather
-The datasets are merged using an inner join on the timestamp:
+---
 
-- `pd.merge(gen_df, weather_df, on="DATE_TIME", how="inner")`
+## Tech Stack
 
-This produces a combined table with generation fields + weather sensor fields aligned by time.
+| Component | Technology |
+|---|---|
+| **ML Model** | scikit-learn (RandomForestRegressor) |
+| **UI** | Streamlit (dark theme, tabbed layout) |
+| **Embeddings** | sentence-transformers (`all-MiniLM-L6-v2`) |
+| **Vector DB** | FAISS (in-memory, cosine similarity) |
+| **LLM** | Groq API — Llama 3.3 70B Versatile |
+| **Data** | pandas, numpy |
 
-### 3) Sort by time
-The merged dataset is sorted by `DATE_TIME` (time order matters for lag features and forecasting):
+---
 
-- `df = df.sort_values("DATE_TIME").reset_index(drop=True)`
+## RAG System
 
-### 4) Feature engineering
+The RAG (Retrieval-Augmented Generation) module grounds the LLM output in **specific operational guidelines** rather than generic advice.
 
-#### Time-based features
-From `DATE_TIME`:
-- `hour = DATE_TIME.dt.hour`
-- `day = DATE_TIME.dt.day`
-- `month = DATE_TIME.dt.month`
+- **Knowledge base:** 14 curated grid management guidelines (battery storage, load balancing, curtailment, maintenance, monitoring)
+- **Embeddings:** 384-dim vectors via `all-MiniLM-L6-v2` (~23M params)
+- **Index:** FAISS `IndexFlatIP` — inner product on L2-normalized vectors = cosine similarity
+- **Retrieval:** Top-3 most relevant guidelines per query
+- **Why RAG:** Prevents hallucination by constraining the LLM to reference defined rules
 
-#### Lag features (past AC power)
-The forecasting pipeline creates:
-- `ac_power_prev_1 = AC_POWER.shift(1)`
-- `ac_power_prev_2 = AC_POWER.shift(2)`
-- `ac_power_prev_24 = AC_POWER.shift(24)`
+---
 
-These capture short-term momentum and daily seasonality.
+## LLM Integration
 
-#### Rolling statistics
-- `ac_power_roll_3 = AC_POWER.rolling(3).mean()`
+| Setting | Value |
+|---|---|
+| Provider | Groq |
+| Model | `llama-3.3-70b-versatile` |
+| Temperature | 0 (deterministic) |
+| Response format | `json_object` (guaranteed valid JSON) |
+| Max tokens | 512 |
 
-This smooths very short-term noise and provides a local trend signal.
+**Output schema:**
+```json
+{
+  "risk_interpretation": "...",
+  "strategy": "...",
+  "actions": "...",
+  "justification": "..."
+}
+```
 
-#### Handling missing values created by lags/rolling
-Rows with missing lag values are dropped:
-- `df = df.dropna().reset_index(drop=True)`
+---
 
-### 5) Avoiding leakage / dropping unused columns
-To prevent leakage and avoid identifiers, the notebook removes fields that would make the prediction too direct or are not intended as model inputs.
+## UI Design
 
-Dropped from features (with `errors="ignore"`):
-- Target and timestamp: `DATE_TIME`, `AC_POWER`
-- Leakage-prone generation outputs: `DC_POWER`, `DAILY_YIELD`, `TOTAL_YIELD`
-- Identifiers: `PLANT_ID`, `SOURCE_KEY` (including `_x` and `_y` variants after merge)
+The app uses a **tabbed layout** with distinct visual identities:
 
-### 6) Train/test split (time-aware)
-The notebook uses an 80/20 split without shuffling:
-- train: earliest 80% of rows
-- test: latest 20% of rows
+| Tab | Theme | Content |
+|---|---|---|
+| **Phase 1 — Forecast** | Gold/amber accent | Plant selection, input sliders, predict button, AC power result |
+| **Phase 2 — AI Grid Optimization** | Cyan/teal accent | Pipeline visualization, 24-hour summary, risk banner, RAG guidelines, LLM strategy |
 
-### 7) Model
-Model used:
+---
 
-- `RandomForestRegressor(n_estimators=200, max_depth=10, random_state=42)`
+## Installation & Setup
 
-### 8) Metrics
-The notebook evaluates:
-- **MAE** (Mean Absolute Error)
-- **RMSE** (Root Mean Squared Error)
-- **R²** (Coefficient of Determination)
+### Prerequisites
+- Python 3.9+
+- Groq API key (free at [console.groq.com](https://console.groq.com))
 
-## Results (from the notebook output)
+### Install dependencies
+```bash
+pip install -r requirements.txt
+```
 
-The notebook trains a separate model for each plant via `run_forecast_pipeline(...)` and prints:
+### Run the app
+```bash
+streamlit run app.py
+```
 
-- **Plant 1**
-  - MAE: **8.440196041108372**
-  - RMSE: **26.341842799727328**
-  - R²: **0.994819099004392**
+### Usage
+1. **Phase 1 tab:** Select a plant, adjust inputs, click **⚡ Predict AC Power**
+2. **Phase 2 tab:** Click **🚀 Run AI Optimization Pipeline** to see full analysis
+3. Expand raw JSON sections for pipeline transparency
 
-- **Plant 2**
-  - MAE: **10.240416179314803**
-  - RMSE: **24.514383098095372**
-  - R²: **0.9925096270691259**
+---
 
-Notebook note:
-- The forecasting model is plant-sensitive and does not fully generalize across locations.
+## Data
 
-## Saved models
+### Generation Data
+- `Plant_1_Generation_Data.csv` / `Plant_2_Generation_Data.csv`
+- Columns: `DATE_TIME`, `PLANT_ID`, `SOURCE_KEY`, `DC_POWER`, `AC_POWER`, `DAILY_YIELD`, `TOTAL_YIELD`
 
-The notebook exports trained models using joblib:
+### Weather Sensor Data
+- `Plant_1_Weather_Sensor_Data.csv` / `Plant_2_Weather_Sensor_Data.csv`
+- Columns: `DATE_TIME`, `PLANT_ID`, `SOURCE_KEY`, `AMBIENT_TEMPERATURE`, `MODULE_TEMPERATURE`, `IRRADIATION`
 
-- `model_plant1.pkl`
-- `model_plant2.pkl`
+---
+
+## Feature Engineering (Phase 1)
+
+| Feature | Source |
+|---|---|
+| `hour`, `day`, `month` | Extracted from `DATE_TIME` |
+| `ac_power_prev_1` | `AC_POWER.shift(1)` |
+| `ac_power_prev_2` | `AC_POWER.shift(2)` |
+| `ac_power_prev_24` | `AC_POWER.shift(24)` |
+| `ac_power_roll_3` | `AC_POWER.rolling(3).mean()` |
+| `AMBIENT_TEMPERATURE` | Weather sensor |
+| `MODULE_TEMPERATURE` | Weather sensor |
+| `IRRADIATION` | Weather sensor |
+
+**Dropped to prevent leakage:** `DC_POWER`, `DAILY_YIELD`, `TOTAL_YIELD`, `PLANT_ID`, `SOURCE_KEY`
+
+---
+
+## Key Design Decisions
+
+1. **Rule-based risk over ML risk:** Interpretable, debuggable, no training needed
+2. **FAISS over cloud vector DBs:** In-memory, zero latency, no external services
+3. **Groq over OpenAI:** Free tier, faster inference, open-source model
+4. **Temperature 0:** Reproducible outputs for same inputs
+5. **No framework (LangChain etc.):** Pipeline is 5 function calls — frameworks add complexity without value here
+
+---
 
 ## Dependencies
 
-From `requirements.txt`:
-- streamlit
-- pandas
-- scikit-learn
-- joblib
+```
+streamlit
+pandas
+scikit-learn
+joblib
+numpy
+faiss-cpu
+sentence-transformers
+groq
+```
+
+---
 
 ## License
 

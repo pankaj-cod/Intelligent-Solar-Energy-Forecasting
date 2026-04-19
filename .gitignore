@@ -1,0 +1,24 @@
+# Environment variables
+.env
+
+# Phase 2 internal docs
+PHASE2_DOCUMENTATION.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
